@@ -9,16 +9,17 @@ package store
 
 import (
 	"geekai/core/types"
+	"time"
+
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
-	"time"
 )
 
 func NewGormConfig() *gorm.Config {
 	return &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
+		Logger: logger.Default.LogMode(logger.Info),
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix:   "chatgpt_", // 设置表前缀
 			SingularTable: false,      // 使用单数表名形式

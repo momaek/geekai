@@ -26,11 +26,11 @@ func (h *ChatHandler) List(c *gin.Context) {
 	}
 
 	userId := h.GetLoginUserId(c)
-	var items = make([]vo.ChatItem, 0)
+	items := make([]vo.ChatItem, 0)
 	var chats []model.ChatItem
-	res := h.DB.Where("user_id = ?", userId).Order("id DESC").Find(&chats)
+	res := h.DB.Where("user_id = ?", userId).Order("updated_at DESC").Find(&chats)
 	if res.Error == nil {
-		var roleIds = make([]uint, 0)
+		roleIds := make([]uint, 0)
 		for _, chat := range chats {
 			roleIds = append(roleIds, chat.RoleId)
 		}
@@ -48,6 +48,8 @@ func (h *ChatHandler) List(c *gin.Context) {
 				if err == nil {
 					item.Id = chat.Id
 					item.Icon = roleMap[chat.RoleId].Icon
+					item.UpdatedAt = chat.UpdatedAt.Unix()
+					item.CreatedAt = chat.CreatedAt.Unix()
 					items = append(items, item)
 				}
 			}
@@ -92,7 +94,7 @@ func (h *ChatHandler) Clear(c *gin.Context) {
 		return
 	}
 
-	var chatIds = make([]string, 0)
+	chatIds := make([]string, 0)
 	for _, chat := range chats {
 		chatIds = append(chatIds, chat.ChatId)
 		// 清空会话上下文
@@ -112,7 +114,6 @@ func (h *ChatHandler) Clear(c *gin.Context) {
 		// TODO: 是否要删除 MidJourney 绘画记录和图片文件？
 		return nil
 	})
-
 	if err != nil {
 		logger.Errorf("Error with delete chats: %+v", err)
 		resp.ERROR(c, "Failed to remove chat from database.")
@@ -126,7 +127,7 @@ func (h *ChatHandler) Clear(c *gin.Context) {
 func (h *ChatHandler) History(c *gin.Context) {
 	chatId := c.Query("chat_id") // 会话 ID
 	var items []model.ChatMessage
-	var messages = make([]vo.HistoryMessage, 0)
+	messages := make([]vo.HistoryMessage, 0)
 	res := h.DB.Where("chat_id = ?", chatId).Find(&items)
 	if res.Error != nil {
 		resp.ERROR(c, "No history message")

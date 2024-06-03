@@ -46,8 +46,7 @@ var logger = logger2.GetLogger()
 var xdbFS embed.FS
 
 // AppLifecycle 应用程序生命周期
-type AppLifecycle struct {
-}
+type AppLifecycle struct{}
 
 // OnStart 应用程序启动时执行
 func (l *AppLifecycle) OnStart(context.Context) error {
@@ -507,5 +506,4 @@ func main() {
 	if err := app.Stop(ctx); err != nil {
 		log.Fatal(err)
 	}
-
 }

@@ -18,8 +18,9 @@ import (
 	"geekai/store"
 	"geekai/store/model"
 	"geekai/utils"
-	"github.com/go-redis/redis/v8"
 	"time"
+
+	"github.com/go-redis/redis/v8"
 
 	"github.com/imroc/req/v3"
 	"gorm.io/gorm"
@@ -138,7 +139,13 @@ func (s *Service) Image(task types.DallTask, sync bool) (string, error) {
 	if len(apiKey.ProxyURL) > 5 {
 		s.httpClient.SetProxyURL(apiKey.ProxyURL).R()
 	}
-	logger.Debugf("Sending %s request, ApiURL:%s, API KEY:%s, PROXY: %s", apiKey.Platform, apiKey.ApiURL, apiKey.Value, apiKey.ProxyURL)
+	logger.Debugf(
+		"Sending %s request, ApiURL:%s, API KEY:%s, PROXY: %s",
+		apiKey.Platform,
+		apiKey.ApiURL,
+		apiKey.Value,
+		apiKey.ProxyURL,
+	)
 	r, err := s.httpClient.R().SetHeader("Content-Type", "application/json").
 		SetHeader("Authorization", "Bearer "+apiKey.Value).
 		SetBody(imgReq{
@@ -284,7 +291,9 @@ func (s *Service) CheckTaskStatus() {
 					var user model.User
 					s.db.Where("id = ?", job.UserId).First(&user)
 					// 退回绘图次数
-					res = s.db.Model(&model.User{}).Where("id = ?", job.UserId).UpdateColumn("power", gorm.Expr("power + ?", job.Power))
+					res = s.db.Model(&model.User{}).
+						Where("id = ?", job.UserId).
+						UpdateColumn("power", gorm.Expr("power + ?", job.Power))
 					if res.Error == nil && res.RowsAffected > 0 {
 						s.db.Create(&model.PowerLog{
 							UserId:    user.Id,
