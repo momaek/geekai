@@ -14,15 +14,15 @@ npm run build
 cd ../build
 
 # remove docker image if exists
-docker rmi -f registry.cn-shenzhen.aliyuncs.com/geekmaster/geekai-api:$version-$arch
+docker rmi -f momaek/geekai-api:$version-$arch
 # build docker image for geekai-go
-docker build -t registry.cn-shenzhen.aliyuncs.com/geekmaster/geekai-api:$version-$arch -f dockerfile-api-go ../
+docker build --platform linux/amd64 -t momaek/geekai-api:$version-$arch -f dockerfile-api-go ../
 
 # build docker image for geekai-web
-docker rmi -f registry.cn-shenzhen.aliyuncs.com/geekmaster/geekai-web:$version-$arch
-docker build --platform linux/amd64 -t registry.cn-shenzhen.aliyuncs.com/geekmaster/geekai-api-web:$version-$arch -f dockerfile-vue ../
+docker rmi -f momaek/geekai-web:$version-$arch
+docker build --platform linux/amd64 -t momaek/geekai-api-web:$version-$arch -f dockerfile-vue ../
 
 if [ "$3" = "push" ];then
-  docker push registry.cn-shenzhen.aliyuncs.com/geekmaster/geekai-api:$version-$arch
-  docker push registry.cn-shenzhen.aliyuncs.com/geekmaster/geekai-web:$version-$arch
+  docker push momaek/geekai-api:$version-$arch
+  docker push momaek/geekai-web:$version-$arch
 fi
