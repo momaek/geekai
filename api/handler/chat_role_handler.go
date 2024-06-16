@@ -32,7 +32,7 @@ func (h *ChatRoleHandler) List(c *gin.Context) {
 	all := h.GetBool(c, "all")
 	userId := h.GetLoginUserId(c)
 	var roles []model.ChatRole
-	var roleVos = make([]vo.ChatRole, 0)
+	roleVos := make([]vo.ChatRole, 0)
 	res := h.DB.Where("enable", true).Order("sort_num ASC").Find(&roles)
 	if res.Error != nil {
 		resp.SUCCESS(c, roleVos)
@@ -42,12 +42,14 @@ func (h *ChatRoleHandler) List(c *gin.Context) {
 	// 获取所有角色
 	if userId == 0 || all {
 		// 转成 vo
-		var roleVos = make([]vo.ChatRole, 0)
+		roleVos := make([]vo.ChatRole, 0)
 		for _, r := range roles {
 			var v vo.ChatRole
 			err := utils.CopyObject(r, &v)
 			if err == nil {
 				v.Id = r.Id
+				v.CreatedAt = r.CreatedAt.Unix()
+				v.UpdatedAt = r.UpdatedAt.Unix()
 				roleVos = append(roleVos, v)
 			}
 		}
