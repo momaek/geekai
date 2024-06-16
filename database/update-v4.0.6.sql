@@ -1,0 +1,1 @@
+ALTER TABLE `chatgpt_chat_roles` ADD `description` varchar(255) NOT NULL COMMENT '描述信息' AFTER `model_id`;
