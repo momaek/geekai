@@ -1,0 +1,3 @@
+[submodule "tailweb"]
+	path = tailweb
+	url = git@github.com:momaek/tailweb.git
