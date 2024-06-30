@@ -3,6 +3,7 @@ FROM registry.cn-hangzhou.aliyuncs.com/geekmaster/nginx:1.20.2
 
 WORKDIR /var/www/app
 COPY ./web/dist /var/www/app/dist
+COPY ./tailweb/dist /var/www/tailapp/dist
 
 EXPOSE 80
 EXPOSE 443

@@ -11,6 +11,9 @@ make clean $arch
 cd ../web
 npm run build
 
+cd ../tailweb
+npm run build
+
 cd ../build
 
 # remove docker image if exists
