@@ -29,7 +29,7 @@ func NewChatModelHandler(app *core.AppServer, db *gorm.DB) *ChatModelHandler {
 // List 模型列表
 func (h *ChatModelHandler) List(c *gin.Context) {
 	var items []model.ChatModel
-	var chatModels = make([]vo.ChatModel, 0)
+	chatModels := make([]vo.ChatModel, 0)
 	var res *gorm.DB
 	// 如果用户没有登录，则加载所有开放模型
 	if !h.IsLogin(c) {
