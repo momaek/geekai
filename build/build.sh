@@ -12,6 +12,7 @@ cd ../web
 npm run build
 
 cd ../tailweb
+npm i
 npm run build
 
 cd ../build
