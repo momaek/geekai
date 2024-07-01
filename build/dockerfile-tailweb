@@ -1,0 +1,9 @@
+# 前端 Vue 项目构建
+FROM registry.cn-hangzhou.aliyuncs.com/geekmaster/nginx:1.20.2
+
+WORKDIR /var/www/app
+COPY ./tailweb/dist /var/www/app/taildist
+
+EXPOSE 80
+EXPOSE 443
+EXPOSE 9090

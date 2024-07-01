@@ -17,19 +17,21 @@ const routes = [
     {
         name: 'home',
         path: '/home',
-        redirect: '/chat',
+        redirect: '/admin/login',
         meta: {title: '首页'},
         component: () => import('@/views/Home.vue'),
         children: [
             {
                 name: 'chat',
                 path: '/chat',
+                redirect: '/admin/login',
                 meta: {title: '创作中心'},
                 component: () => import('@/views/ChatPlus.vue'),
             },
             {
                 name: 'image-mj',
                 path: '/mj',
+                redirect: '/admin/login',
                 meta: {title: 'MidJourney 绘画中心'},
                 component: () => import('@/views/ImageMj.vue'),
             },
@@ -92,13 +94,14 @@ const routes = [
     {
         name: 'login',
         path: '/login',
+        redirect: '/admin/login',
         meta: {title: '用户登录'},
         component: () => import('@/views/Login.vue'),
     },
     {
         name: 'register',
         path: '/register',
-
+        redirect: '/admin/login',
         meta: {title: '用户注册'},
         component: () => import('@/views/Register.vue'),
     },

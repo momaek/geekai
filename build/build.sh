@@ -24,7 +24,11 @@ docker build --platform linux/amd64 -t momaek/geekai-api:$version-$arch -f docke
 
 # build docker image for geekai-web
 docker rmi -f momaek/geekai-web:$version-$arch
-docker build --platform linux/amd64 -t momaek/geekai-api-web:$version-$arch -f dockerfile-vue ../
+docker build --platform linux/amd64 -t momaek/geekai-web:$version-$arch -f dockerfile-vue ../
+
+# build docker image for geekai-web
+docker rmi -f momaek/geekai-tailweb:$version-$arch
+docker build --platform linux/amd64 -t momaek/geekai-tailweb:$version-$arch -f dockerfile-tailweb ../
 
 if [ "$3" = "push" ];then
   docker push momaek/geekai-api:$version-$arch

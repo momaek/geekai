@@ -39,7 +39,6 @@ services:
       - ./logs/xxl-job:/data/applogs
       - ./conf/xxl-job/application.properties:/application.properties
 
-
   midjourney-proxy:
     image: novicezk/midjourney-proxy:2.6.0
     container_name: geekai-midjourney-proxy
@@ -48,8 +47,6 @@ services:
       - "8082:8080"
     volumes:
       - ./conf/mj-proxy:/home/spring/config
-
-
 
   # 后端 API 程序
   geekai-api:
@@ -75,13 +72,27 @@ services:
 
   # 前端应用
   geekai-web:
-    image: momaek/geekai-api-web:v4.0.6.1-amd64
+    image: momaek/geekai-web:v4.0.6.1-amd64
     container_name: geekai-web
     restart: always
     depends_on:
       - geekai-api
     ports:
       - "8080:8080"
+    volumes:
+      - ./logs/nginx:/var/log/nginx
+      - ./conf/nginx/conf.d:/etc/nginx/conf.d
+      - ./conf/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./conf/nginx/ssl:/etc/nginx/ssl
+
+  geekai-tailweb:
+    image: momaek/geekai-tailweb:v4.0.6.1-amd64
+    container_name: geekai-tailweb
+    restart: always
+    depends_on:
+      - geekai-api
+    ports:
+      - "9090:9090"
     volumes:
       - ./logs/nginx:/var/log/nginx
       - ./conf/nginx/conf.d:/etc/nginx/conf.d
