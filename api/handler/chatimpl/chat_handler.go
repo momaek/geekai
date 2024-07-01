@@ -118,6 +118,7 @@ func (h *ChatHandler) ChatHandle(c *gin.Context) {
 	if res.Error == nil {
 		chatModel.Id = chat.ModelId
 		roleId = int(chat.RoleId)
+		h.DB.Model(&model.ChatItem{}).Update("updated_at", time.Now()).Where("chat_id = ?", chatId)
 	}
 
 	session.ChatId = chatId
@@ -130,7 +131,8 @@ func (h *ChatHandler) ChatHandle(c *gin.Context) {
 		MaxContext:  chatModel.MaxContext,
 		Temperature: chatModel.Temperature,
 		KeyId:       chatModel.KeyId,
-		Platform:    types.Platform(chatModel.Platform)}
+		Platform:    types.Platform(chatModel.Platform),
+	}
 	logger.Infof("New websocket connected, IP: %s, Username: %s", c.ClientIP(), session.Username)
 
 	h.Init()
@@ -183,7 +185,13 @@ func (h *ChatHandler) ChatHandle(c *gin.Context) {
 	}()
 }
 
-func (h *ChatHandler) sendMessage(ctx context.Context, session *types.ChatSession, role model.ChatRole, prompt string, ws *types.WsClient) error {
+func (h *ChatHandler) sendMessage(
+	ctx context.Context,
+	session *types.ChatSession,
+	role model.ChatRole,
+	prompt string,
+	ws *types.WsClient,
+) error {
 	if !h.App.Debug {
 		defer func() {
 			if r := recover(); r != nil {
@@ -219,11 +227,10 @@ func (h *ChatHandler) sendMessage(ctx context.Context, session *types.ChatSessio
 	// 检查 prompt 长度是否超过了当前模型允许的最大上下文长度
 	promptTokens, err := utils.CalcTokens(prompt, session.Model.Value)
 	if promptTokens > session.Model.MaxContext {
-
 		return errors.New("对话内容超出了当前模型允许的最大上下文长度！")
 	}
 
-	var req = types.ApiRequest{
+	req := types.ApiRequest{
 		Model:  session.Model.Value,
 		Stream: true,
 	}
@@ -242,7 +249,7 @@ func (h *ChatHandler) sendMessage(ctx context.Context, session *types.ChatSessio
 			break
 		}
 
-		var tools = make([]types.Tool, 0)
+		tools := make([]types.Tool, 0)
 		for _, v := range items {
 			var parameters map[string]interface{}
 			err = utils.JsonDecode(v.Parameters, &parameters)
@@ -285,6 +292,7 @@ func (h *ChatHandler) sendMessage(ctx context.Context, session *types.ChatSessio
 	// 加载聊天上下文
 	chatCtx := make([]types.Message, 0)
 	messages := make([]types.Message, 0)
+
 	if h.App.SysConfig.EnableContext {
 		if h.App.ChatContexts.Has(session.ChatId) {
 			messages = h.App.ChatContexts.Get(session.ChatId)
@@ -328,6 +336,7 @@ func (h *ChatHandler) sendMessage(ctx context.Context, session *types.ChatSessio
 			chatCtx = append(chatCtx, v)
 		}
 
+		fmt.Println("======== chatChat: ", chatCtx)
 		logger.Debugf("聊天上下文：%+v", chatCtx)
 	}
 	reqMgs := make([]interface{}, 0)
@@ -463,14 +472,24 @@ func (h *ChatHandler) StopGenerate(c *gin.Context) {
 
 // 发送请求到 OpenAI 服务器
 // useOwnApiKey: 是否使用了用户自己的 API KEY
-func (h *ChatHandler) doRequest(ctx context.Context, req types.ApiRequest, session *types.ChatSession, apiKey *model.ApiKey) (*http.Response, error) {
+func (h *ChatHandler) doRequest(
+	ctx context.Context,
+	req types.ApiRequest,
+	session *types.ChatSession,
+	apiKey *model.ApiKey,
+) (*http.Response, error) {
 	// if the chat model bind a KEY, use it directly
 	if session.Model.KeyId > 0 {
 		h.DB.Debug().Where("id", session.Model.KeyId).Where("enabled", true).Find(apiKey)
 	}
 	// use the last unused key
 	if apiKey.Id == 0 {
-		h.DB.Debug().Where("platform", session.Model.Platform).Where("type", "chat").Where("enabled", true).Order("last_used_at ASC").First(apiKey)
+		h.DB.Debug().
+			Where("platform", session.Model.Platform).
+			Where("type", "chat").
+			Where("enabled", true).
+			Order("last_used_at ASC").
+			First(apiKey)
 	}
 	if apiKey.Id == 0 {
 		return nil, errors.New("no available key, please import key")
@@ -534,7 +553,14 @@ func (h *ChatHandler) doRequest(ctx context.Context, req types.ApiRequest, sessi
 	} else {
 		client = http.DefaultClient
 	}
-	logger.Debugf("Sending %s request, ApiURL:%s, API KEY:%s, PROXY: %s, Model: %s", session.Model.Platform, apiURL, apiKey.Value, apiKey.ProxyURL, req.Model)
+	logger.Debugf(
+		"Sending %s request, ApiURL:%s, API KEY:%s, PROXY: %s, Model: %s",
+		session.Model.Platform,
+		apiURL,
+		apiKey.Value,
+		apiKey.ProxyURL,
+		req.Model,
+	)
 	switch session.Model.Platform {
 	case types.Azure:
 		request.Header.Set("api-key", apiKey.Value)
@@ -582,7 +608,6 @@ func (h *ChatHandler) subUserPower(userVo vo.User, session *types.ChatSession, p
 			CreatedAt: time.Now(),
 		})
 	}
-
 }
 
 // 将AI回复消息中生成的图片链接下载到本地
