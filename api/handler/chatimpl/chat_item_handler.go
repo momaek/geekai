@@ -48,6 +48,7 @@ func (h *ChatHandler) List(c *gin.Context) {
 				if err == nil {
 					item.Id = chat.Id
 					item.Icon = roleMap[chat.RoleId].Icon
+					item.RoleName = roleMap[chat.RoleId].Name
 					item.UpdatedAt = chat.UpdatedAt.Unix()
 					item.CreatedAt = chat.CreatedAt.Unix()
 					items = append(items, item)
