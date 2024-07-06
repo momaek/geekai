@@ -36,7 +36,7 @@ type BizCode int
 const (
 	Success       = BizCode(0)
 	Failed        = BizCode(1)
-	NotAuthorized = BizCode(400) // 未授权
+	NotAuthorized = BizCode(401) // 未授权
 	NotPermission = BizCode(403) // 没有权限
 
 	OkMsg       = "Success"

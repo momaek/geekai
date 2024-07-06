@@ -9,8 +9,9 @@ package resp
 
 import (
 	"geekai/core/types"
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 func SUCCESS(c *gin.Context, values ...interface{}) {
@@ -19,7 +20,6 @@ func SUCCESS(c *gin.Context, values ...interface{}) {
 	} else {
 		c.JSON(http.StatusOK, types.BizVo{Code: types.Success})
 	}
-
 }
 
 func ERROR(c *gin.Context, messages ...string) {

@@ -36,7 +36,8 @@ func NewUserHandler(
 	app *core.AppServer,
 	db *gorm.DB,
 	searcher *xdb.Searcher,
-	client *redis.Client) *UserHandler {
+	client *redis.Client,
+) *UserHandler {
 	return &UserHandler{
 		BaseHandler: BaseHandler{DB: db, App: app},
 		searcher:    searcher,
@@ -118,19 +119,26 @@ func (h *UserHandler) Register(c *gin.Context) {
 		// 增加邀请数量
 		h.DB.Model(&model.InviteCode{}).Where("code = ?", data.InviteCode).UpdateColumn("reg_num", gorm.Expr("reg_num + ?", 1))
 		if h.App.SysConfig.InvitePower > 0 {
-			h.DB.Model(&model.User{}).Where("id = ?", inviteCode.UserId).UpdateColumn("power", gorm.Expr("power + ?", h.App.SysConfig.InvitePower))
+			h.DB.Model(&model.User{}).
+				Where("id = ?", inviteCode.UserId).
+				UpdateColumn("power", gorm.Expr("power + ?", h.App.SysConfig.InvitePower))
 			// 记录邀请算力充值日志
 			var inviter model.User
 			h.DB.Where("id", inviteCode.UserId).First(&inviter)
 			h.DB.Create(&model.PowerLog{
-				UserId:    inviter.Id,
-				Username:  inviter.Username,
-				Type:      types.PowerInvite,
-				Amount:    h.App.SysConfig.InvitePower,
-				Balance:   inviter.Power,
-				Mark:      types.PowerAdd,
-				Model:     "",
-				Remark:    fmt.Sprintf("邀请用户注册奖励，金额：%d，邀请码：%s，新用户：%s", h.App.SysConfig.InvitePower, inviteCode.Code, user.Username),
+				UserId:   inviter.Id,
+				Username: inviter.Username,
+				Type:     types.PowerInvite,
+				Amount:   h.App.SysConfig.InvitePower,
+				Balance:  inviter.Power,
+				Mark:     types.PowerAdd,
+				Model:    "",
+				Remark: fmt.Sprintf(
+					"邀请用户注册奖励，金额：%d，邀请码：%s，新用户：%s",
+					h.App.SysConfig.InvitePower,
+					inviteCode.Code,
+					user.Username,
+				),
 				CreatedAt: time.Now(),
 			})
 		}
@@ -242,13 +250,13 @@ func (h *UserHandler) Session(c *gin.Context) {
 		err := utils.CopyObject(user, &userVo)
 		if err != nil {
 			resp.ERROR(c)
+			return
 		}
 		userVo.Id = user.Id
 		resp.SUCCESS(c, userVo)
 	} else {
 		resp.NotAuth(c)
 	}
-
 }
 
 type userProfile struct {
