@@ -9,18 +9,12 @@ package core
 
 import (
 	"bytes"
+	"context"
+	"fmt"
 	"geekai/core/types"
 	"geekai/store/model"
 	"geekai/utils"
 	"geekai/utils/resp"
-	"context"
-	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/go-redis/redis/v8"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/nfnt/resize"
-	"golang.org/x/image/webp"
-	"gorm.io/gorm"
 	"image"
 	"image/jpeg"
 	"io"
@@ -29,6 +23,13 @@ import (
 	"runtime/debug"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/nfnt/resize"
+	"golang.org/x/image/webp"
+	"gorm.io/gorm"
 )
 
 type AppServer struct {
@@ -41,7 +42,7 @@ type AppServer struct {
 
 	// 保存 Websocket 会话 UserId, 每个 UserId 只能连接一次
 	// 防止第三方直接连接 socket 调用 OpenAI API
-	ChatSession   *types.LMap[string, *types.ChatSession] //map[sessionId]UserId
+	ChatSession   *types.LMap[string, *types.ChatSession] // map[sessionId]UserId
 	ChatClients   *types.LMap[string, *types.WsClient]    // map[sessionId]Websocket 连接集合
 	ReqCancelFunc *types.LMap[string, context.CancelFunc] // HttpClient 请求取消 handle function
 }
@@ -99,7 +100,7 @@ func errorHandler(c *gin.Context) {
 			c.Abort()
 		}
 	}()
-	//加载完 defer recover，继续后续接口调用
+	// 加载完 defer recover，继续后续接口调用
 	c.Next()
 }
 
@@ -112,13 +113,19 @@ func corsMiddleware() gin.HandlerFunc {
 			// 设置允许的请求源
 			c.Header("Access-Control-Allow-Origin", origin)
 			c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, UPDATE")
-			//允许跨域设置可以返回其他子段，可以自定义字段
-			c.Header("Access-Control-Allow-Headers", "Authorization, Content-Length, Content-Type, Chat-Token, Admin-Authorization")
+			// 允许跨域设置可以返回其他子段，可以自定义字段
+			c.Header(
+				"Access-Control-Allow-Headers",
+				"Authorization, Content-Length, Content-Type, Chat-Token, Admin-Authorization",
+			)
 			// 允许浏览器（客户端）可以解析的头部 （重要）
-			c.Header("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers")
-			//设置缓存时间
+			c.Header(
+				"Access-Control-Expose-Headers",
+				"Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers",
+			)
+			// 设置缓存时间
 			c.Header("Access-Control-Max-Age", "172800")
-			//允许客户端传递校验信息比如 cookie (重要)
+			// 允许客户端传递校验信息比如 cookie (重要)
 			c.Header("Access-Control-Allow-Credentials", "true")
 		}
 
@@ -149,8 +156,10 @@ func authorizeMiddleware(s *AppServer, client *redis.Client) gin.HandlerFunc {
 			tokenString = c.GetHeader(types.UserAuthHeader)
 		}
 
+		needLogin := needLogin(c)
+
 		if tokenString == "" {
-			if needLogin(c) {
+			if needLogin {
 				resp.ERROR(c, "You should put Authorization in request headers")
 				c.Abort()
 				return
@@ -161,7 +170,7 @@ func authorizeMiddleware(s *AppServer, client *redis.Client) gin.HandlerFunc {
 		}
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok && needLogin(c) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok && needLogin {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
 			if isAdminApi {
@@ -169,24 +178,23 @@ func authorizeMiddleware(s *AppServer, client *redis.Client) gin.HandlerFunc {
 			} else {
 				return []byte(s.Config.Session.SecretKey), nil
 			}
-
 		})
 
-		if err != nil && needLogin(c) {
+		if err != nil && needLogin {
 			resp.NotAuth(c, fmt.Sprintf("Error with parse auth token: %v", err))
 			c.Abort()
 			return
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok || !token.Valid && needLogin(c) {
+		if !ok || !token.Valid && needLogin {
 			resp.NotAuth(c, "Token is invalid")
 			c.Abort()
 			return
 		}
 
 		expr := utils.IntValue(utils.InterfaceToString(claims["expired"]), 0)
-		if expr > 0 && int64(expr) < time.Now().Unix() && needLogin(c) {
+		if expr > 0 && int64(expr) < time.Now().Unix() && needLogin {
 			resp.NotAuth(c, "Token is expired")
 			c.Abort()
 			return
@@ -196,7 +204,7 @@ func authorizeMiddleware(s *AppServer, client *redis.Client) gin.HandlerFunc {
 		if isAdminApi {
 			key = fmt.Sprintf("admin/%v", claims["user_id"])
 		}
-		if _, err := client.Get(context.Background(), key).Result(); err != nil && needLogin(c) {
+		if _, err := client.Get(context.Background(), key).Result(); err != nil && needLogin {
 			resp.NotAuth(c, "Token is not found in redis")
 			c.Abort()
 			return
@@ -213,8 +221,6 @@ func needLogin(c *gin.Context) bool {
 		c.Request.URL.Path == "/api/admin/logout" ||
 		c.Request.URL.Path == "/api/admin/login/captcha" ||
 		c.Request.URL.Path == "/api/user/register" ||
-		c.Request.URL.Path == "/api/user/session" ||
-		c.Request.URL.Path == "/api/chat/history" ||
 		c.Request.URL.Path == "/api/chat/detail" ||
 		c.Request.URL.Path == "/api/chat/list" ||
 		c.Request.URL.Path == "/api/role/list" ||
@@ -315,7 +321,6 @@ func trimJSONStrings(data interface{}) {
 // 静态资源中间件
 func staticResourceMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
 		url := c.Request.URL.String()
 		// 拦截生成缩略图请求
 		if strings.HasPrefix(url, "/static/") && strings.Contains(url, "?imageView2") {

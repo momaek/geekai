@@ -336,7 +336,6 @@ func (h *ChatHandler) sendMessage(
 			chatCtx = append(chatCtx, v)
 		}
 
-		fmt.Println("======== chatChat: ", chatCtx)
 		logger.Debugf("聊天上下文：%+v", chatCtx)
 	}
 	reqMgs := make([]interface{}, 0)
