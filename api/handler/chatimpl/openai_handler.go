@@ -35,10 +35,11 @@ func (h *ChatHandler) sendOpenAiMessage(
 	session *types.ChatSession,
 	role model.ChatRole,
 	prompt string,
-	ws *types.WsClient) error {
+	ws *types.WsClient,
+) error {
 	promptCreatedAt := time.Now() // 记录提问时间
 	start := time.Now()
-	var apiKey = model.ApiKey{}
+	apiKey := model.ApiKey{}
 	response, err := h.doRequest(ctx, req, session, &apiKey)
 	logger.Info("HTTP请求完成，耗时：", time.Now().Sub(start))
 	if err != nil {
@@ -61,20 +62,20 @@ func (h *ChatHandler) sendOpenAiMessage(
 	if strings.Contains(contentType, "text/event-stream") {
 		replyCreatedAt := time.Now() // 记录回复时间
 		// 循环读取 Chunk 消息
-		var message = types.Message{}
-		var contents = make([]string, 0)
+		message := types.Message{}
+		contents := make([]string, 0)
 		var function model.Function
-		var toolCall = false
-		var arguments = make([]string, 0)
+		toolCall := false
+		arguments := make([]string, 0)
 		scanner := bufio.NewScanner(response.Body)
-		var isNew = true
+		isNew := true
 		for scanner.Scan() {
 			line := scanner.Text()
 			if !strings.Contains(line, "data:") || len(line) < 30 {
 				continue
 			}
 
-			var responseBody = types.ApiResponse{}
+			responseBody := types.ApiResponse{}
 			err = json.Unmarshal([]byte(line[6:]), &responseBody)
 			if err != nil { // 数据解析出错
 				return errors.New(line)
@@ -82,7 +83,7 @@ func (h *ChatHandler) sendOpenAiMessage(
 			if len(responseBody.Choices) == 0 { // Fixed: 兼容 Azure API 第一个输出空行
 				continue
 			}
-			
+
 			if responseBody.Choices[0].FinishReason == "stop" && len(contents) == 0 {
 				utils.ReplyMessage(ws, "抱歉😔😔😔，AI助手由于未知原因已经停止输出内容。")
 				break
@@ -226,7 +227,7 @@ func (h *ChatHandler) sendOpenAiMessage(
 			}
 
 			// 计算本次对话消耗的总 token 数量
-			var replyTokens = 0
+			replyTokens := 0
 			if toolCall { // prompt + 函数名 + 参数 token
 				tokens, _ := utils.CalcTokens(function.Name, req.Model)
 				replyTokens += tokens

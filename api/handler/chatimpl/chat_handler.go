@@ -320,15 +320,16 @@ func (h *ChatHandler) sendMessage(
 		tks, _ := utils.CalcTokens(utils.JsonEncode(req.Tools), req.Model)
 		tokens += tks + promptTokens
 
-		for _, v := range messages {
+		idx := len(messages) - h.App.SysConfig.ContextDeep
+		if idx < 0 {
+			idx = 0
+		}
+
+		for ; idx < len(messages); idx++ {
+			v := messages[idx]
 			tks, _ := utils.CalcTokens(v.Content, req.Model)
 			// 上下文 token 超出了模型的最大上下文长度
 			if tokens+tks >= session.Model.MaxContext {
-				break
-			}
-
-			// 上下文的深度超出了模型的最大上下文深度
-			if len(chatCtx) >= h.App.SysConfig.ContextDeep {
 				break
 			}
 
